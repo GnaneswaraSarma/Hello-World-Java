@@ -4,48 +4,48 @@ pipeline
     	tools {
 	    maven 'localMaven'
 	      }
-        stages
-   {
-        
-        stage('Build')
-        {
-            steps {
-                sh 'mvn clean package'
-            }
-            post {
-                success {
-                    echo 'Now Archiving...'
-                    archiveArtifacts artifacts: '**/target/*.war'
-                }
-            }
+    parameters 
+       {
+             string(name: 'tomcat_dev', defaultValue: '13.233.32.194', description: 'Staging Server')
+             string(name: 'tomcat_prod', defaultValue: '13.127.2.236', description: 'Production Server')
         }
-        stage('Deploy to Staging')
+    
+        triggers
         {
-           steps 
-           {
-             build job: 'deploy_to_staging'                         
-           }
-        }
-        stage('Deploy to Prod')
-        {
-            steps
+             pollSCM('* * * * *')
+         }
+    
+    stages{
+            stage('Build')
             {
-                timeout(time:5, unit: 'DAYS')
+                steps 
                 {
-                    input message:'Approve Production Deployment?'
+                    sh 'mvn clean package'
                 }
-                build job: 'deploy_to_prod'
-            }
-            post{
-                success{
-                    echo 'Code deployed to production'
-                }
-                failure {
-                    echo 'Deployment failed'
+                post 
+                {
+                    success {
+                        echo 'Now Archiving...'
+                        archiveArtifacts artifacts: '**/target/*.war'
+                    }
                 }
             }
-        }
-        
-        
+    
+            stage ('Deployments'){
+                parallel{
+                    stage ('Deploy to Staging'){
+                        steps {
+                            sh "scp -i /home/jenkins/acloudgurumykeypair.pem **/target/*.war ec2-user@${params.tomcat_dev}:/var/lib/tomcat/webapps"
+                        }
+                    }
+    
+                    stage ("Deploy to Production"){
+                        steps {
+                            sh "scp -i /home/jenkins/acloudgurumykeypair.pem **/target/*.war ec2-user@${params.tomcat_prod}:/var/lib/tomcat/webapps"
+                        }
+                    }
+                }
+            }
     }
+       
 }
