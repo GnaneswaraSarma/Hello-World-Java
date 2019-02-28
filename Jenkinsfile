@@ -35,7 +35,7 @@ pipeline
                 parallel{
                     stage ('Deploy to Staging'){
                         steps {
-                            sh "scp -i /home/jenkins/acloudgurumykeypair.pem **/target/*.war ec2-user@${params.tomcat_dev}:/var/lib/tomcat/webapps"
+                            sh "scp -i /var/lib/jenkins/acloudgurumykeypair.pem **/target/*.war ec2-user@${params.tomcat_dev}:/var/lib/tomcat/webapps"
                         }
                     }
     
